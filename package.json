@@ -1,0 +1,13 @@
+{
+  "name": "generate-with-ai",
+  "version": "1.0.0",
+  "description": "AI Image Generator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "openai": "^5.0.0"
+  }
+}
