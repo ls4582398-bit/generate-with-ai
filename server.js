@@ -14,17 +14,17 @@ app.get('/health', (req, res) => {
 app.post('/api/generate-image', async (req, res) => {
   try {
     const prompt = typeof req.body.prompt === 'string' ? req.body.prompt.trim() : '';
-    const token = process.env.HF_TOKEN;
+    const token = process.env.CF_ACCOUNT_ID;
 
     if (!prompt) {
       return res.status(400).json({ error: 'Please enter a prompt.' });
     }
     if (!token) {
-      return res.status(500).json({ error: 'HF_TOKEN is missing in Render Environment Variables.' });
+      return res.status(500).json({ error: 'CF_ACCOUNT_ID is missing in Render Environment Variables.' });
     }
 
     const response = await fetch(
-      'https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-3-medium-diffusers',
+      'https://router.cloudflare.co/hf-inference/models/stabilityai/stable-diffusion-3-medium-diffusers',
       {
         method: 'POST',
         headers: {
@@ -41,9 +41,9 @@ app.post('/api/generate-image', async (req, res) => {
     const contentType = response.headers.get('content-type') || '';
     if (!response.ok || !contentType.startsWith('image/')) {
       const details = await response.text();
-      console.error('Hugging Face error:', response.status, details);
+      console.error('Cloudflare error:', response.status, details);
       return res.status(response.status || 502).json({
-        error: 'Image generation failed. Check the Hugging Face model/provider response.',
+        error: 'Image generation failed. Check the Cloudflare model/provider response.',
         details: details.slice(0, 1200)
       });
     }
