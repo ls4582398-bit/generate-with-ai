@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generate with AI</title>
+<style>
+:root{--bg:#090914;--panel:#171729;--line:#373650;--text:#f6f3ff;--muted:#b8b3ca;--accent:#8652f4}
+*{box-sizing:border-box}
+body{margin:0;padding:18px 14px 40px;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
+main{max-width:760px;margin:auto}
+header{text-align:center;padding:8px 0 18px}
+h1{font-size:30px;margin:8px 0}
+.subtitle{color:var(--muted);margin:0}
+.plan{margin:14px auto 20px;padding:14px;border:1px solid #7552bb;border-radius:16px;background:linear-gradient(120deg,#28174a,#171729);text-align:center}
+.plan strong{font-size:21px;color:#e0ceff}
+.plan p{margin:6px 0;color:var(--muted);font-size:14px}
+.tabs{display:flex;gap:10px;margin:18px 0}
+.tab{flex:1;padding:14px;border-radius:13px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:17px;font-weight:bold}
+.tab.active{background:var(--accent);border-color:var(--accent)}
+.card{padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:18px;margin:14px 0}
+label{display:block;font-size:16px;font-weight:bold;margin:16px 0 9px}
+textarea,select,input[type=file]{width:100%;padding:14px;border:1px solid var(--line);border-radius:12px;background:#101020;color:var(--text);font-size:16px}
+textarea{min-height:112px;resize:vertical}
+button.primary{width:100%;padding:16px;margin-top:18px;border:0;border-radius:13px;background:linear-gradient(100deg,#8950f4,#397be9);color:white;font-size:18px;font-weight:bold}
+button:disabled{opacity:.55}
+.hint{font-size:13px;color:var(--muted);line-height:1.5}
+.preview{display:none;max-width:100%;max-height:260px;margin:12px auto;border-radius:12px}
+#status{min-height:24px;margin:14px 0;text-align:center;white-space:pre-wrap;color:#e1d9ff}
+#result{display:none;text-align:center}
+#generatedImage{max-width:100%;height:auto;border-radius:14px;margin:12px auto;display:block}
+#download{display:inline-block;padding:12px 18px;border-radius:10px;background:#6f43c7;color:white;text-decoration:none;font-weight:bold}
+#videoPanel{display:none}
+#gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.galleryItem{background:#101020;border:1px solid var(--line);padding:8px;border-radius:12px;overflow:hidden}
+.galleryItem img{width:100%;height:130px;object-fit:cover;border-radius:8px}
+.galleryItem a{display:block;color:#d7c5ff;text-align:center;margin-top:7px;font-size:13px}
+#galleryEmpty{text-align:center;color:var(--muted);padding:14px}
+.smallTitle{font-size:20px;margin:0 0 12px}
+.notice{background:#211d31;border:1px solid #51436d;padding:12px;border-radius:12px;color:#d5c9ed;font-size:13px;line-height:1.5}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>✨ Generate with AI</h1>
+  <p class="subtitle">Create images and explore video creation</p>
+</header>
+
+<section class="plan">
+  <strong>⭐ Membership: ₹10 / day</strong>
+  <p>1-day free trial plan</p>
+  <p class="hint">Plan display only — online payment and membership activation are not connected yet.</p>
+</section>
+
+<div class="tabs">
+  <button class="tab active" id="imageTab" type="button" onclick="showTab('image')">🖼️ Image</button>
+  <button class="tab" id="videoTab" type="button" onclick="showTab('video')">🎬 Video</button>
+</div>
+
+<section class="card" id="imagePanel">
+  <h2 class="smallTitle">Create an Image</h2>
+  <label for="prompt">Describe your imagination</label>
+  <textarea id="prompt" placeholder="Example: A magical forest with glowing butterflies"></textarea>
+
+  <label for="style">Choose image style</label>
+  <select id="style">
+    <option>Realistic</option><option>3D Cartoon</option><option>Anime</option>
+    <option>Fantasy</option><option>Digital Art</option><option>Watercolor</option>
+  </select>
+
+  <label for="imageUpload">Upload photo from gallery (optional)</label>
+  <input id="imageUpload" type="file" accept="image/*">
+  <img id="imageUploadPreview" class="preview" alt="Selected photo preview">
+  <p class="hint">The selected photo is previewed here. The current image API generates from text prompts; photo-based editing is not connected yet.</p>
+
+  <button class="primary" id="generateButton" type="button" onclick="generateImage()">✦ Generate Image</button>
+  <div id="status" role="status"></div>
+
+  <div id="result">
+    <h2>✨ Your Image is Ready!</h2>
+    <img id="generatedImage" alt="Generated image">
+    <a id="download" href="#" download="ai-generated-image.png">↓ Download Image</a>
+  </div>
+</section>
+
+<section class="card" id="videoPanel">
+  <h2 class="smallTitle">🎬 Create a Video</h2>
+  <label for="videoPrompt">Describe your video</label>
+  <textarea id="videoPrompt" placeholder="Describe the video you want to create"></textarea>
+  <label for="videoUpload">Upload video or photo from gallery</label>
+  <input id="videoUpload" type="file" accept="video/*,image/*">
+  <p id="videoFileName" class="hint">No file selected.</p>
+  <div class="notice">Video upload selection is available, but AI video generation is not connected to the server yet. This tab will not generate a video until a video-generation API is added.</div>
+  <button class="primary" type="button" onclick="videoNotice()">Create Video</button>
+  <div id="videoStatus" role="status"></div>
+</section>
+
+<section class="card">
+  <h2 class="smallTitle">🗂️ My Gallery</h2>
+  <div id="gallery"><div id="galleryEmpty">Your generated images will appear here.</div></div>
+</section>
+<p class="hint" style="text-align:center">Generated images are saved in this browser on this device.</p>
+</main>
+
+<script>
+function showTab(which){
+  const imageOn=which==="image";
+  document.getElementById("imagePanel").style.display=imageOn?"block":"none";
+  document.getElementById("videoPanel").style.display=imageOn?"none":"block";
+  document.getElementById("imageTab").classList.toggle("active",imageOn);
+  document.getElementById("videoTab").classList.toggle("active",!imageOn);
+}
+document.getElementById("imageUpload").addEventListener("change",function(){
+  const file=this.files&&this.files[0];
+  const preview=document.getElementById("imageUploadPreview");
+  if(!file){preview.style.display="none";return;}
+  preview.src=URL.createObjectURL(file);
+  preview.style.display="block";
+});
+document.getElementById("videoUpload").addEventListener("change",function(){
+  const file=this.files&&this.files[0];
+  document.getElementById("videoFileName").textContent=file?("Selected: "+file.name):"No file selected.";
+});
+function videoNotice(){
+  document.getElementById("videoStatus").textContent="Video generation is not connected yet. Your selected file is not uploaded.";
+}
+async function generateImage(){
+  const prompt=document.getElementById("prompt").value.trim();
+  const status=document.getElementById("status");
+  const button=document.getElementById("generateButton");
+  const result=document.getElementById("result");
+  const image=document.getElementById("generatedImage");
+  const download=document.getElementById("download");
+  if(!prompt){status.textContent="Please describe your image first.";return;}
+  button.disabled=true;button.textContent="Generating...";
+  status.textContent="Creating your image. Please wait...";
+  result.style.display="none";
+  try{
+    const style=document.getElementById("style").value;
+    const response=await fetch("/api/generate-image",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({prompt:prompt+", "+style+" style"})
+    });
+    const type=response.headers.get("content-type")||"";
+    if(!type.includes("application/json")){
+      const raw=await response.text();
+      throw new Error("Unexpected server response: "+raw.slice(0,160));
+    }
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||data.details||"Image generation failed.");
+    let imageData=data.image||data.dataURI||data.data||data.result?.image;
+    if(typeof imageData!=="string"||!imageData)throw new Error("Server did not return image data.");
+    let imageUrl=imageData;
+    if(!imageUrl.startsWith("data:")&&!/^https?:\/\//i.test(imageUrl))imageUrl="data:image/png;base64,"+imageUrl;
+    image.onload=()=>{
+      result.style.display="block";
+      status.textContent="Image generated successfully.";
+      saveToGallery(imageUrl);
+    };
+    image.onerror=()=>{status.textContent="Returned data is not a valid image. Server response needs checking.";};
+    image.src=imageUrl;
+    download.href=imageUrl;
+    download.download="ai-generated-image.png";
+  }catch(error){status.textContent="⚠️ "+error.message;}
+  finally{button.disabled=false;button.textContent="✦ Generate Image";}
+}
+function saveToGallery(dataUrl){
+  try{
+    const items=JSON.parse(localStorage.getItem("generatedAIGallery")||"[]");
+    items.unshift({src:dataUrl,created:Date.now()});
+    const trimmed=items.slice(0,8);
+    localStorage.setItem("generatedAIGallery",JSON.stringify(trimmed));
+    renderGallery();
+  }catch(e){
+    document.getElementById("status").textContent="Image generated, but browser storage is full; it was not saved to gallery.";
+  }
+}
+function renderGallery(){
+  const gallery=document.getElementById("gallery");
+  let items=[];
+  try{items=JSON.parse(localStorage.getItem("generatedAIGallery")||"[]");}catch(e){}
+  gallery.innerHTML="";
+  if(!items.length){gallery.innerHTML='<div id="galleryEmpty">Your generated images will appear here.</div>';return;}
+  items.forEach((item,index)=>{
+    const div=document.createElement("div");div.className="galleryItem";
+    const img=document.createElement("img");img.src=item.src;img.alt="Saved generated image";
+    const link=document.createElement("a");link.href=item.src;link.download="generated-image-"+(index+1)+".png";link.textContent="Download";
+    div.appendChild(img);div.appendChild(link);gallery.appendChild(div);
+  });
+}
+renderGallery();
+</script>
+</body>
+</html>
