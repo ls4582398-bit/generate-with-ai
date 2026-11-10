@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generate with AI</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:22px 16px;background:#0b0b18;color:#f7f5ff;font-family:Arial,sans-serif}
+main{max-width:720px;margin:auto}h1{text-align:center;margin:12px 0 8px;font-size:30px}
+.subtitle{text-align:center;color:#bdb8d0;margin-bottom:28px}
+label{display:block;margin:20px 0 10px;font-size:18px}
+textarea,select{width:100%;padding:15px;border-radius:14px;border:1px solid #403b59;background:#191829;color:white;font-size:16px}
+textarea{min-height:130px;resize:vertical}
+button{width:100%;margin-top:22px;padding:17px;border:0;border-radius:14px;color:white;background:linear-gradient(100deg,#853cf0,#2478e9);font-size:19px;font-weight:bold}
+button:disabled{opacity:.6}#status{margin:18px 0;text-align:center;white-space:pre-wrap;color:#d0c9e8}
+#result{display:none;margin-top:22px;padding:16px;border:1px solid #403b59;border-radius:16px;background:#191829;text-align:center}
+#generatedImage{display:block;max-width:100%;height:auto;margin:14px auto;border-radius:12px}
+#download{display:inline-block;margin:12px;padding:12px 18px;border-radius:10px;background:#6534bd;color:white;text-decoration:none;font-weight:bold}
+.note{text-align:center;color:#9993ad;font-size:13px;margin-top:28px}
+</style>
+</head>
+<body>
+<main>
+<h1>✨ Generate with AI</h1>
+<p class="subtitle">Turn your imagination into an image</p>
+<label for="prompt">Describe your image</label>
+<textarea id="prompt" placeholder="A beautiful fantasy castle above the clouds"></textarea>
+<label for="style">Choose a style</label>
+<select id="style">
+<option>Realistic</option><option>3D Cartoon</option><option>Anime</option>
+<option>Fantasy</option><option>Digital Art</option><option>Watercolor</option>
+</select>
+<button id="generateButton" type="button">✦ Generate with AI</button>
+<div id="status" role="status"></div>
+<section id="result">
+<h2>✨ Your Image is Ready!</h2>
+<img id="generatedImage" alt="Generated image">
+<a id="download" href="#" download="ai-generated-image.png">↓ Download Image</a>
+</section>
+<p class="note">Image generation may take a little time.</p>
+</main>
+<script>
+const button=document.getElementById("generateButton");
+const promptBox=document.getElementById("prompt");
+const styleBox=document.getElementById("style");
+const statusBox=document.getElementById("status");
+const resultBox=document.getElementById("result");
+const imageElement=document.getElementById("generatedImage");
+const downloadLink=document.getElementById("download");
+button.addEventListener("click",generateImage);
+
+async function generateImage(){
+  const prompt=promptBox.value.trim();
+  if(!prompt){statusBox.textContent="Please describe your image first.";return;}
+  button.disabled=true;button.textContent="Generating...";
+  statusBox.textContent="Creating your image. Please wait...";
+  resultBox.style.display="none";
+  try{
+    const response=await fetch("/api/generate-image",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({prompt:prompt+", "+styleBox.value+" style"})
+    });
+    const type=response.headers.get("content-type")||"";
+    if(!type.includes("application/json")){
+      const raw=await response.text();
+      throw new Error("Unexpected server response: "+raw.slice(0,180));
+    }
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||data.details||"Image generation failed.");
+    let imageData=data.image||data.dataURI||data.data||data.result?.image;
+    if(typeof imageData!=="string"||!imageData.length)throw new Error("Server did not return image data.");
+    let imageUrl=imageData;
+    if(!imageUrl.startsWith("data:")&&!/^https?:\/\//i.test(imageUrl)){
+      imageUrl="data:image/png;base64,"+imageUrl;
+    }
+    imageElement.onload=()=>{resultBox.style.display="block";statusBox.textContent="Image generated successfully.";};
+    imageElement.onerror=()=>{statusBox.textContent="Returned data is not a valid image. Server response needs checking.";};
+    imageElement.src=imageUrl;
+    downloadLink.href=imageUrl;
+    downloadLink.download="ai-generated-image.png";
+  }catch(error){statusBox.textContent="⚠️ "+error.message;}
+  finally{button.disabled=false;button.textContent="✦ Generate with AI";}
+}
+</script>
+</body>
+</html>
