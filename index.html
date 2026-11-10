@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Flappy Sky — Keep Going!</title>
+<style>
+*{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#10182b;font-family:Arial,sans-serif}
+body{display:grid;place-items:center}
+#wrap{position:relative;width:min(100vw,480px);height:min(100vh,820px);overflow:hidden;background:#8edcf5;box-shadow:0 0 35px #0008}
+canvas{width:100%;height:100%;display:block}
+#hud{position:absolute;inset:12px 12px auto;display:flex;justify-content:space-between;align-items:flex-start;color:white;font-weight:900;text-shadow:0 2px 5px #234}
+.pill{background:#10243c88;border:1px solid #ffffff55;border-radius:14px;padding:8px 12px;font-size:14px}
+#score{font-size:30px;text-align:center;min-width:50px}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;background:linear-gradient(#08172a33,#08172a88)}
+.card{width:100%;max-width:330px;background:#10243de8;border:2px solid #ffffff55;border-radius:24px;padding:25px 20px;color:#fff;box-shadow:0 12px 35px #0005}
+h1{margin:0 0 8px;font-size:34px;letter-spacing:1px}#sub{margin:0 0 20px;color:#d8f4ff;line-height:1.45}
+button{border:0;border-radius:30px;padding:14px 32px;background:linear-gradient(135deg,#ffe66d,#ffad42);color:#273044;font-size:18px;font-weight:900;box-shadow:0 5px 0 #c87824;cursor:pointer}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 #c87824}
+#hint{font-size:12px;color:#c5e8f5;margin-top:16px}
+#toast{position:absolute;top:19%;left:8%;right:8%;text-align:center;color:white;font-weight:900;font-size:22px;text-shadow:0 3px 6px #17334f;opacity:0;transition:opacity .25s;pointer-events:none}
+#footer{position:absolute;bottom:9px;width:100%;text-align:center;color:#fff;font-size:11px;text-shadow:0 2px 4px #123;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="wrap">
+ <canvas id="game" width="480" height="820" aria-label="Flappy Sky game"></canvas>
+ <div id="hud"><div class="pill" id="level">🌤️ SUNNY SKY</div><div class="pill" id="score">0</div><div class="pill" id="best">BEST 0</div></div>
+ <div id="toast"></div>
+ <div id="overlay"><div class="card"><h1>FLAPPY SKY</h1><p id="sub">Tap, flap, and fly through the pipes!<br>Every point is progress.</p><button id="start">PLAY NOW</button><div id="hint">TAP SCREEN or press SPACE to flap</div></div></div>
+ <div id="footer">KEEP GOING • YOU'RE GETTING BETTER WITH EVERY TRY</div>
+</div>
+<script>
+(()=>{
+const c=document.getElementById('game'),ctx=c.getContext('2d'),overlay=document.getElementById('overlay');
+const scoreEl=document.getElementById('score'),bestEl=document.getElementById('best'),levelEl=document.getElementById('level'),toast=document.getElementById('toast');
+const W=480,H=820,ground=745;let state='ready',bird,pipes,score,best=Number(localStorage.getItem('flappySkyBest')||0),frame=0,toastTimer=0,particles=[];
+bestEl.textContent='BEST '+best;
+const themes=[
+ {name:'🌤️ SUNNY SKY',top:'#76d8f2',bottom:'#d8f7ff',ground:'#65bd62',pipe:'#3cbf75',cloud:1},
+ {name:'🌅 GOLDEN EVENING',top:'#ffad79',bottom:'#ffe6a7',ground:'#6cae69',pipe:'#329f79',cloud:.7},
+ {name:'🌌 STAR NIGHT',top:'#172b59',bottom:'#5365a2',ground:'#344d54',pipe:'#56b9a2',cloud:0},
+ {name:'🌧️ RAINY WORLD',top:'#506b83',bottom:'#9db8c8',ground:'#547b67',pipe:'#65a88b',cloud:.4},
+ {name:'🌸 DREAM BLOOM',top:'#f7a9d2',bottom:'#c7c6ff',ground:'#71b77b',pipe:'#49ad91',cloud:.8}
+];
+function theme(){return themes[Math.min(themes.length-1,Math.floor(score/8))]}
+function reset(){bird={x:120,y:360,vy:0,rot:0};pipes=[];score=0;frame=0;particles=[];scoreEl.textContent='0';levelEl.textContent=theme().name}
+function start(){reset();state='playing';overlay.style.display='none';flap()}
+function flap(){if(state==='ready'){start();return}if(state!=='playing')return;bird.vy=-7.4;for(let i=0;i<5;i++)particles.push({x:bird.x-12,y:bird.y+5,vx:-Math.random()*2-1,vy:Math.random()*2-1,life:18})}
+function end(){state='over';best=Math.max(best,score);localStorage.setItem('flappySkyBest',best);bestEl.textContent='BEST '+best;document.getElementById('sub').innerHTML=`You scored <b>${score}</b>!<br>${score>=8?'Amazing flying! Keep reaching higher.':'Every try makes you better. Try again!'}`;document.querySelector('#overlay h1').textContent='NICE TRY!';document.getElementById('start').textContent='PLAY AGAIN';overlay.style.display='flex'}
+document.getElementById('start').addEventListener('click',()=>{document.querySelector('#overlay h1').textContent='FLAPPY SKY';start()});
+c.addEventListener('pointerdown',e=>{e.preventDefault();if(state==='ready')start();else if(state==='playing')flap()});
+document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();if(state==='over'){document.querySelector('#overlay h1').textContent='FLAPPY SKY';start()}else flap() }});
+function rounded(x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
+function drawBackground(t){
+ let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,t.top);g.addColorStop(1,t.bottom);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ if(t.cloud){for(let i=0;i<5;i++){let x=((i*125-frame*.25)%620+620)%620-70,y=115+(i%3)*105;ctx.globalAlpha=.5*t.cloud;ctx.fillStyle='white';ctx.beginPath();ctx.arc(x,y,27,0,Math.PI*2);ctx.arc(x+27,y-10,34,0,Math.PI*2);ctx.arc(x+58,y,25,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1}
+ if(score>=16){for(let i=0;i<45;i++){let x=(i*97+frame*.1)%W,y=(i*53)%500;ctx.fillStyle='#fff';ctx.globalAlpha=.5+Math.sin(frame*.04+i)*.3;ctx.fillRect(x,y,2,2)}ctx.globalAlpha=1}
+ if(score>=24){ctx.strokeStyle='#dff7ff88';ctx.lineWidth=2;for(let i=0;i<22;i++){let x=(i*31+frame*3)%W;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x-12,28);ctx.stroke()}}
+}
+function drawBird(){
+ ctx.save();ctx.translate(bird.x,bird.y);ctx.rotate(bird.rot);
+ // tail
+ ctx.fillStyle='#ff9d35';ctx.beginPath();ctx.moveTo(-19,1);ctx.lineTo(-32,-8);ctx.lineTo(-29,8);ctx.closePath();ctx.fill();
+ // wing
+ ctx.fillStyle='#f5a623';ctx.beginPath();ctx.ellipse(-3,5,12,7,Math.sin(frame*.3)*.25,0,Math.PI*2);ctx.fill();
+ // body
+ let bg=ctx.createLinearGradient(-14,-15,15,15);bg.addColorStop(0,'#fff16b');bg.addColorStop(1,'#ff9d35');ctx.fillStyle=bg;ctx.beginPath();ctx.ellipse(0,0,20,16,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(9,-7,6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#26334a';ctx.beginPath();ctx.arc(11,-7,2.5,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#ff7043';ctx.beginPath();ctx.moveTo(16,0);ctx.lineTo(29,4);ctx.lineTo(16,8);ctx.closePath();ctx.fill();ctx.restore();
+}
+function drawPipe(p,t){let grad=ctx.createLinearGradient(p.x,0,p.x+65,0);grad.addColorStop(0,'#176d58');grad.addColorStop(.35,t.pipe);grad.addColorStop(1,'#1d805e');ctx.fillStyle=grad;ctx.fillRect(p.x,0,62,p.top);ctx.fillRect(p.x,p.bottom,62,ground-p.bottom);rounded(p.x-6,p.top-22,74,22,5,t.pipe);rounded(p.x-6,p.bottom,74,22,5,t.pipe);ctx.strokeStyle='#ffffff55';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(p.x+10,0);ctx.lineTo(p.x+10,p.top-25);ctx.moveTo(p.x+10,p.bottom+25);ctx.lineTo(p.x+10,ground);ctx.stroke()}
+function drawGround(){ctx.fillStyle=theme().ground;ctx.fillRect(0,ground,W,H-ground);ctx.fillStyle='#b9e77a';ctx.fillRect(0,ground,W,12);ctx.fillStyle='#ffffff33';for(let x=-(frame*3%40);x<W;x+=40)ctx.fillRect(x,ground+25,20,4)}
+function showToast(msg){toast.textContent=msg;toast.style.opacity=1;toastTimer=100}
+const messages={3:'✨ NICE START! KEEP GOING!',6:'🚀 YOU CAN DO THIS!',10:'🌟 GREAT PROGRESS!',16:'🔥 YOU ARE FLYING HIGH!',24:'🏆 AMAZING! NEVER GIVE UP!'};
+function update(){
+ frame++;
+ if(state==='playing'){
+  bird.vy+=.38;bird.y+=bird.vy;bird.rot=Math.min(.8,Math.max(-.5,bird.vy*.07));
+  if(frame%92===0){let top=100+Math.random()*280; pipes.push({x:W+10,top,bottom:top+190,passed:false})}
+  for(let p of pipes){p.x-=2.8;if(!p.passed&&p.x+62<bird.x){p.passed=true;score++;scoreEl.textContent=score;levelEl.textContent=theme().name;if(messages[score])showToast(messages[score])}}
+  pipes=pipes.filter(p=>p.x>-90);
+  for(let p of pipes){if(bird.x+14>p.x&&bird.x-14<p.x+62&&(bird.y-12<p.top||bird.y+12>p.bottom))end()}
+  if(bird.y+14>=ground||bird.y-14<0)end();
+  if(toastTimer>0&&--toastTimer===0)toast.style.opacity=0;
+ }
+ particles=particles.filter(a=>a.life-->0);for(let a of particles){a.x+=a.vx;a.y+=a.vy}
+}
+function draw(){
+ const t=theme();drawBackground(t);
+ // distant hills
+ ctx.fillStyle='#ffffff25';ctx.beginPath();ctx.moveTo(0,ground);for(let x=0;x<=W;x+=40)ctx.lineTo(x,610+Math.sin(x*.018+frame*.006)*25);ctx.lineTo(W,ground);ctx.fill();
+ pipes.forEach(p=>drawPipe(p,t));drawGround();
+ particles.forEach(a=>{ctx.globalAlpha=a.life/18;ctx.fillStyle='#fff4a8';ctx.beginPath();ctx.arc(a.x,a.y,3,0,7);ctx.fill()});ctx.globalAlpha=1;
+ if(bird)drawBird();
+ if(state==='ready'){ctx.fillStyle='#fff';ctx.font='bold 18px Arial';ctx.textAlign='center';ctx.fillText('TAP TO START YOUR ADVENTURE',W/2,500)}
+}
+function loop(){update();draw();requestAnimationFrame(loop)}
+reset();loop();
+})();
+</script>
+</body></html>
